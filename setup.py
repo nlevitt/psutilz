@@ -15,6 +15,7 @@ setuptools.setup(
         "console_scripts": [
             "pslisten=psutilz.pslisten:main",
             "dstat=psutilz.dstat:main",
+            "ps.py=psutilz.ps:main",
         ]
     },
 )
