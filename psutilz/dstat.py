@@ -11,31 +11,31 @@ import signal
 import abc
 
 ANSI_ESCAPES = {
-    'black': '\033[0;30m',
-    'red': '\033[0;31m',
-    'green': '\033[0;32m',
-    'yellow': '\033[0;33m',
-    'blue': '\033[0;34m',
-    'magenta': '\033[0;35m',
-    'cyan': '\033[0;36m',
-    'lightgrey': '\033[0;37m',
-    'darkgrey': '\033[0;90m',
-    'reset': '\033[0;0m',
-    'underline': '\033[4m',
-    'bold': '\033[1m',
+    "black": "\033[0;30m",
+    "red": "\033[0;31m",
+    "green": "\033[0;32m",
+    "yellow": "\033[0;33m",
+    "blue": "\033[0;34m",
+    "magenta": "\033[0;35m",
+    "cyan": "\033[0;36m",
+    "lightgrey": "\033[0;37m",
+    "darkgrey": "\033[0;90m",
+    "reset": "\033[0;0m",
+    "underline": "\033[4m",
+    "bold": "\033[1m",
 }
-BLUE = ANSI_ESCAPES['blue']
-RESET = ANSI_ESCAPES['reset']
-BOLD = ANSI_ESCAPES['bold']
-UNDERLINE = ANSI_ESCAPES['underline']
-DARKGREY = ANSI_ESCAPES['darkgrey']
+BLUE = ANSI_ESCAPES["blue"]
+RESET = ANSI_ESCAPES["reset"]
+BOLD = ANSI_ESCAPES["bold"]
+UNDERLINE = ANSI_ESCAPES["underline"]
+DARKGREY = ANSI_ESCAPES["darkgrey"]
 
 HEAT_COLORS = [
-    ANSI_ESCAPES['blue'],   # (4)
-    ANSI_ESCAPES['cyan'],   # (6)
-    ANSI_ESCAPES['green'],  # (2)
-    ANSI_ESCAPES['yellow'], # (3)
-    ANSI_ESCAPES['red'],    # (1)
+    ANSI_ESCAPES["blue"],  # (4)
+    ANSI_ESCAPES["cyan"],  # (6)
+    ANSI_ESCAPES["green"],  # (2)
+    ANSI_ESCAPES["yellow"],  # (3)
+    ANSI_ESCAPES["red"],  # (1)
 ]
 
 # base class for a single statistic
@@ -48,21 +48,30 @@ class Statistic(abc.ABC):
 
     @abc.abstractmethod
     def heat_level(self):
-        '''
+        """
         Returns a value between 0 (blue) and 4 (red)
-        '''
+        """
         raise NotImplementedError
 
     def to_str(self):
-        if self.value == 0: # int or float
-            value_str = ' ' * (self.value_width - 1) + '0'
+        if self.value == 0:  # int or float
+            value_str = " " * (self.value_width - 1) + "0"
         elif isinstance(self.value, int):
-            value_str = '% *d' % (self.value_width, self.value)
+            value_str = "% *d" % (self.value_width, self.value)
         else:
-            value_str = ('%.6f' % self.value)[:self.value_width]
-        result = HEAT_COLORS[self.heat_level()] + BOLD + value_str \
-                + RESET + DARKGREY + BOLD + self.unit + RESET
+            value_str = ("%.6f" % self.value)[: self.value_width]
+        result = (
+            HEAT_COLORS[self.heat_level()]
+            + BOLD
+            + value_str
+            + RESET
+            + DARKGREY
+            + BOLD
+            + self.unit
+            + RESET
+        )
         return result
+
 
 # === mac ===
 # >>> psutil.cpu_stats()
@@ -76,17 +85,25 @@ class Statistic(abc.ABC):
 # >>> psutil.cpu_stats()
 # scpustats(ctx_switches=10839719127, interrupts=8227216711, soft_interrupts=14619700996, syscalls=0)
 
+
 class Time:
     def header0(self):
-        return '--------system---------'
+        return "--------system---------"
+
     def header1(self):
-        return ('         time          ',)
+        return ("         time          ",)
+
     def value(self):
-        return DARKGREY + datetime.datetime.now().isoformat(timespec='milliseconds') + RESET
+        return (
+            DARKGREY
+            + datetime.datetime.now().isoformat(timespec="milliseconds")
+            + RESET
+        )
+
 
 class LoadAvg(Statistic):
     def __init__(self, value):
-        super().__init__(value, unit='', width=4)
+        super().__init__(value, unit="", width=4)
 
     def heat_level(self):
         # :shrug:
@@ -101,19 +118,23 @@ class LoadAvg(Statistic):
         else:
             return 4
 
+
 class LoadAvgs:
     def header0(self):
-        return '---load-avg---'
+        return "---load-avg---"
+
     def header1(self):
-        return ' 1m ', ' 5m ', ' 15m'
+        return " 1m ", " 5m ", " 15m"
+
     def value(self):
         loads = (LoadAvg(load).to_str() for load in psutil.getloadavg())
-        return ' '.join(loads)
+        return " ".join(loads)
+
 
 class CpuTime(Statistic):
     def __init__(self, name, value):
         self.name = name
-        super().__init__(value, unit='', width=3)
+        super().__init__(value, unit="", width=3)
 
     def heat_level(self):
         # if self.name == 'idle':
@@ -132,9 +153,10 @@ class CpuTime(Statistic):
 
     def to_str(self):
         if self.value == 0:
-            return HEAT_COLORS[0] + BOLD + '0.0' + RESET
+            return HEAT_COLORS[0] + BOLD + "0.0" + RESET
         else:
             return super().to_str()
+
 
 class CpuTimes:
     # === mac ===
@@ -146,22 +168,24 @@ class CpuTimes:
     # scputimes(user=1.5, nice=0.0, system=0.1, idle=97.8, iowait=0.0, irq=0.0, softirq=0.5, steal=0.1, guest=0.0, guest_nice=0.0)
 
     ABBRS = {
-        'user': 'usr',
-        'nice': 'nic',
-        'system': 'sys',
-        'idle': 'idl',
-        'irq': 'hiq',
-        'softirq': 'siq',
-        'steal': 'stl',
-        'guest': 'gst',
-        'guest_nice': 'gni',
+        "user": "usr",
+        "nice": "nic",
+        "system": "sys",
+        "idle": "idl",
+        "irq": "hiq",
+        "softirq": "siq",
+        "steal": "stl",
+        "guest": "gst",
+        "guest_nice": "gni",
     }
 
     def __init__(self):
         cputimes = psutil.cpu_times_percent()
         self._header1 = [self.ABBRS[f] for f in cputimes._fields]
-        space_to_fill = 4 * len(self._header1) - 1 - len('total-cpu-usage')
-        self._header0 = '-' * (space_to_fill // 2) + 'total-cpu-usage' + '-' * (space_to_fill // 2)
+        space_to_fill = 4 * len(self._header1) - 1 - len("total-cpu-usage")
+        self._header0 = (
+            "-" * (space_to_fill // 2) + "total-cpu-usage" + "-" * (space_to_fill // 2)
+        )
 
     def header0(self):
         return self._header0
@@ -172,21 +196,23 @@ class CpuTimes:
     def value(self):
         cputimes = psutil.cpu_times_percent()
         formatted_cputimes = (
-                CpuTime(name, value).to_str()
-                for name, value in cputimes._asdict().items())
-        result = ' '.join(formatted_cputimes)
+            CpuTime(name, value).to_str() for name, value in cputimes._asdict().items()
+        )
+        result = " ".join(formatted_cputimes)
         return result
 
-def pretty_bytes(value, b=' '):
-    '''
+
+def pretty_bytes(value, b=" "):
+    """
     Returns tuple (value, unit)
-    '''
+    """
     number = value
-    for unit in [b, 'k', 'm', 'g', 't', 'p']:
-        if number < 1024.0 or unit == 'p':
+    for unit in [b, "k", "m", "g", "t", "p"]:
+        if number < 1024.0 or unit == "p":
             break
         number /= 1024.0
     return number, unit
+
 
 class DiskStat(Statistic):
     def __init__(self, value):
@@ -206,16 +232,17 @@ class DiskStat(Statistic):
         else:
             return 4
 
+
 class DiskStats:
     def __init__(self):
         self.last_time = time.time()
         self.last_values = psutil.disk_io_counters()
 
     def header0(self):
-        return '-dsk/total-'
+        return "-dsk/total-"
 
     def header1(self):
-        return ' read', ' writ'
+        return " read", " writ"
 
     def value(self):
         t = time.time()
@@ -225,13 +252,17 @@ class DiskStats:
         read_bytes = values.read_bytes - self.last_values.read_bytes
         write_bytes = values.write_bytes - self.last_values.write_bytes
 
-        result = DiskStat(read_bytes / elapsed).to_str() \
-                + ' ' + DiskStat(write_bytes / elapsed).to_str()
+        result = (
+            DiskStat(read_bytes / elapsed).to_str()
+            + " "
+            + DiskStat(write_bytes / elapsed).to_str()
+        )
 
         self.last_time = t
         self.last_values = values
 
         return result
+
 
 class NetStat(Statistic):
     def __init__(self, value):
@@ -251,16 +282,17 @@ class NetStat(Statistic):
         else:
             return 4
 
+
 class NetStats:
     def __init__(self):
         self.last_time = time.time()
         self.last_values = psutil.net_io_counters()
 
     def header0(self):
-        return '-net/total-'
+        return "-net/total-"
 
     def header1(self):
-        return ' recv', ' send'
+        return " recv", " send"
 
     def value(self):
         t = time.time()
@@ -270,13 +302,17 @@ class NetStats:
         bytes_recv = values.bytes_recv - self.last_values.bytes_recv
         bytes_sent = values.bytes_sent - self.last_values.bytes_sent
 
-        result = NetStat(bytes_recv / elapsed).to_str() \
-                + ' ' + NetStat(bytes_sent / elapsed).to_str()
+        result = (
+            NetStat(bytes_recv / elapsed).to_str()
+            + " "
+            + NetStat(bytes_sent / elapsed).to_str()
+        )
 
         self.last_time = t
         self.last_values = values
 
         return result
+
 
 class MemUsage(Statistic):
     def __init__(self, value):
@@ -286,18 +322,20 @@ class MemUsage(Statistic):
     def heat_level(self):
         return 0
 
+
 class MemUsages:
     # TODO add support for buff/cached (not available on mac)
 
     def header0(self):
-        return '-mem-usage-'
+        return "-mem-usage-"
 
     def header1(self):
-        return ' used', ' free'
+        return " used", " free"
 
     def value(self):
         vm = psutil.virtual_memory()
-        return MemUsage(vm.used).to_str() + ' ' + MemUsage(vm.available).to_str()
+        return MemUsage(vm.used).to_str() + " " + MemUsage(vm.available).to_str()
+
 
 class PagingStat(Statistic):
     def __init__(self, value):
@@ -318,16 +356,17 @@ class PagingStat(Statistic):
         else:
             return 4
 
+
 class Paging:
     def __init__(self):
         self.last_time = time.time()
         self.last_values = psutil.swap_memory()
 
     def header0(self):
-        return '---paging--'
+        return "---paging--"
 
     def header1(self):
-        return '  in ', '  out '
+        return "  in ", "  out "
 
     def value(self):
         t = time.time()
@@ -337,13 +376,17 @@ class Paging:
         sin = values.sin - self.last_values.sin
         sout = values.sout - self.last_values.sout
 
-        result = PagingStat(int(sin / elapsed)).to_str() \
-                + ' ' + PagingStat(int(sout / elapsed)).to_str()
+        result = (
+            PagingStat(int(sin / elapsed)).to_str()
+            + " "
+            + PagingStat(int(sout / elapsed)).to_str()
+        )
 
         self.last_values = values
         self.last_time = t
 
         return result
+
 
 class System:
     def __init__(self):
@@ -351,10 +394,10 @@ class System:
         self.last_values = psutil.cpu_stats()
 
     def header0(self):
-        return '---system--'
+        return "---system--"
 
     def header1(self):
-        return ' int ', ' csw '
+        return " int ", " csw "
 
     def value(self):
         t = time.time()
@@ -374,11 +417,12 @@ class System:
             csw_rate = pretty_bytes(ctx_switches / elapsed, 5)
             int_rate = pretty_bytes(interrupts / elapsed, 5)
 
-        result = '%s %s' % (int_rate, csw_rate)
+        result = "%s %s" % (int_rate, csw_rate)
 
         self.last_values = values
 
         return result
+
 
 class Dstat:
     def __init__(self):
@@ -415,14 +459,16 @@ class Dstat:
             missed_ticks = next_i - (i + 1)
             i = next_i
 
-    COLUMN_DELIM = BLUE + '|' + RESET
-    def print_header(self):
-        header0 = BLUE + ' '.join(stat.header0() for stat in self.stats) + RESET
+    COLUMN_DELIM = BLUE + "|" + RESET
 
-        substat_delim = RESET + ' ' + BLUE + UNDERLINE + BOLD
+    def print_header(self):
+        header0 = BLUE + " ".join(stat.header0() for stat in self.stats) + RESET
+
+        substat_delim = RESET + " " + BLUE + UNDERLINE + BOLD
         header1 = Dstat.COLUMN_DELIM.join(
-                (BLUE + UNDERLINE + BOLD + substat_delim.join(stat.header1()) + RESET)
-                for stat in self.stats)
+            (BLUE + UNDERLINE + BOLD + substat_delim.join(stat.header1()) + RESET)
+            for stat in self.stats
+        )
 
         print(header0)
         print(header1)
@@ -430,10 +476,11 @@ class Dstat:
     def print_stats_line(self, missed_ticks):
         line = Dstat.COLUMN_DELIM.join(stat.value() for stat in self.stats)
         if missed_ticks == 1:
-            line += ' missed 1 tick'
+            line += " missed 1 tick"
         elif missed_ticks > 1:
-            line += ' missed %s ticks' % missed_ticks
+            line += " missed %s ticks" % missed_ticks
         print(line)
+
 
 # def term_has_color():
 #     "Return whether the system can use colors or not"
@@ -452,19 +499,21 @@ class Dstat:
 #         return True
 #     return False
 
+
 def main(argv=None):
     argv = argv or sys.argv
     arg_parser = argparse.ArgumentParser(
-            prog=os.path.basename(argv[0]),
-            description='dstat.py - psutil version of dstat',
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        prog=os.path.basename(argv[0]),
+        description="dstat.py - psutil version of dstat",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     args = arg_parser.parse_args(args=argv[1:])
 
-    signal.signal(signal.SIGQUIT, lambda s,f: sys.exit(0))
-    signal.signal(signal.SIGINT, lambda s,f: sys.exit(0))
+    signal.signal(signal.SIGQUIT, lambda s, f: sys.exit(0))
+    signal.signal(signal.SIGINT, lambda s, f: sys.exit(0))
 
     Dstat().run()
 
-if __name__ == '__main__':
-    sys.exit(main())
 
+if __name__ == "__main__":
+    sys.exit(main())
