@@ -12,10 +12,10 @@ import os
 
 class TreeNode(NamedTuple):
     proc: psutil.Process
-    children: list["TreeNode"]  #
+    children: list
 
 
-def build_process_tree(procs: list[psutil.Process]):
+def build_process_tree(procs: list):
     children_by_ppid = defaultdict(list)
     proc_by_pid = {}
     for proc in procs:
