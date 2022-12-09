@@ -15,8 +15,7 @@ class TreeNode(NamedTuple):
     children: list["TreeNode"]  #
 
 
-def build_process_tree():
-    procs = list(psutil.process_iter())
+def build_process_tree(procs: list[psutil.Process]):
     children_by_ppid = defaultdict(list)
     proc_by_pid = {}
     for proc in procs:
@@ -44,50 +43,40 @@ def build_process_tree():
     return root
 
 
-def print_tree(process_tree: TreeNode):
-    user_width = 5
+def print_tree(process_tree: TreeNode, user_max_width=5):
     print(
-        f"{'USER':>{user_width}} {'PID':>5} {'PPID':>5} {'NIC':>3} {'%CPU':>5} {'%MEM':>5} {'#TH':>5}"
+        f"{'USER':>{user_max_width}} {'PID':>5} {'PPID':>5} {'NIC':>3} {'%CPU':>5} {'%MEM':>5} {'#TH':>5}"
         f" {'STARTED':>19} COMMAND"
     )
 
     def _print_tree(node: TreeNode, indent: int = 0):
-        try:
-            cpu_percent = node.proc.cpu_percent()
-        except psutil.Error:
-            cpu_percent = float("nan")
-
-        try:
-            memory_percent = node.proc.memory_percent()
-        except psutil.Error:
-            memory_percent = float("nan")
-
-        try:
-            num_threads = node.proc.num_threads()
-        except psutil.Error:
-            num_threads = "?"
-
-        try:
-            cmdline = subprocess.list2cmdline(node.proc.cmdline())
-        except psutil.Error:
-            cmdline = "?"
-
-        try:
-            nice = node.proc.nice()
-        except psutil.Error:
-            nice = "?"
-
+        info = node.proc.info
+        cpu_percent_str = (
+            f"{info['cpu_percent']: 5.1f}"
+            if info["cpu_percent"] is not None
+            else "    ?"
+        )
+        memory_percent_str = (
+            f"{info['memory_percent']: 5.1f}"
+            if info["memory_percent"] is not None
+            else "    ?"
+        )
+        cmd_str = (
+            subprocess.list2cmdline(info["cmdline"])
+            if info["cmdline"]
+            else (info["name"] or "?")
+        )
         print(
-            f"{node.proc.username() or '?':>{user_width}} "
-            f"{node.proc.pid:>5} "
-            f"{node.proc.ppid() or '?':>5} "
-            f"{nice:>3} "
-            f"{cpu_percent: 5.1f} "
-            f"{memory_percent: 5.1f} "
-            f"{num_threads:>5} "
-            f"{datetime.utcfromtimestamp(node.proc.create_time()):%Y-%m-%d %H:%M:%S} "
+            f"{info['username'] or '?':>{user_max_width}} "
+            f"{info['pid']:>5} "
+            f"{info['ppid'] or '?':>5} "
+            f"{info['nice'] or '?':>3} "
+            f"{cpu_percent_str} "
+            f"{memory_percent_str} "
+            f"{info['num_threads'] or '?':>5} "
+            f"{datetime.utcfromtimestamp(info['create_time']):%Y-%m-%d %H:%M:%S} "
             f"{' '*indent}"
-            f"{cmdline}"
+            f"{cmd_str}"
         )
 
         for child in node.children:
@@ -105,8 +94,25 @@ def main(argv=None):
     )
     arg_parser.parse_args(args=argv[1:])
 
-    process_tree = build_process_tree()
-    print_tree(process_tree)
+    procs = list(
+        psutil.process_iter(
+            [
+                "pid",
+                "username",
+                "cmdline",
+                "name",
+                "num_threads",
+                "cpu_percent",
+                "memory_percent",
+                "ppid",
+                "nice",
+                "create_time",
+            ]
+        )
+    )
+    process_tree = build_process_tree(procs)
+    user_max_width = max(len(proc.info["username"]) for proc in procs)
+    print_tree(process_tree, user_max_width)
 
 
 if __name__ == "__main__":
