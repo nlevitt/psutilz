@@ -181,7 +181,7 @@ class CpuTimes:
 
     def __init__(self):
         cputimes = psutil.cpu_times_percent()
-        self._header1 = [self.ABBRS[f] for f in cputimes._fields]
+        self._header1 = [self.ABBRS.get(f) or f[:3] for f in cputimes._fields]
         space_to_fill = 4 * len(self._header1) - 1 - len("total-cpu-usage")
         self._header0 = (
             "-" * (space_to_fill // 2) + "total-cpu-usage" + "-" * (space_to_fill // 2)
