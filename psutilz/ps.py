@@ -94,25 +94,28 @@ def main(argv=None):
     )
     arg_parser.parse_args(args=argv[1:])
 
-    procs = list(
-        psutil.process_iter(
-            [
-                "pid",
-                "username",
-                "cmdline",
-                "name",
-                "num_threads",
-                "cpu_percent",
-                "memory_percent",
-                "ppid",
-                "nice",
-                "create_time",
-            ]
+    try:
+        procs = list(
+            psutil.process_iter(
+                [
+                    "pid",
+                    "username",
+                    "cmdline",
+                    "name",
+                    "num_threads",
+                    "cpu_percent",
+                    "memory_percent",
+                    "ppid",
+                    "nice",
+                    "create_time",
+                ]
+            )
         )
-    )
-    process_tree = build_process_tree(procs)
-    user_max_width = max(len(proc.info["username"]) for proc in procs)
-    print_tree(process_tree, user_max_width)
+        process_tree = build_process_tree(procs)
+        user_max_width = max(len(proc.info["username"]) for proc in procs)
+        print_tree(process_tree, user_max_width)
+    except BrokenPipeError:
+        pass
 
 
 if __name__ == "__main__":
