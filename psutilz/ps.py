@@ -74,8 +74,7 @@ def print_tree(process_tree: TreeNode, user_max_width=5):
             f"{cpu_percent_str} "
             f"{memory_percent_str} "
             f"{info['num_threads'] or '?':>5} "
-            # f"{len(info['open_files'] or []):>5} "
-            f"{info['num_fds']:>5} "
+            f"{info['num_fds'] or '?':>5} "
             f"{datetime.utcfromtimestamp(info['create_time']):%Y-%m-%d %H:%M:%S} "
             f"{' '*indent}"
             f"{cmd_str}"
@@ -105,7 +104,6 @@ def main(argv=None):
                     "cmdline",
                     "name",
                     "num_threads",
-                    # "open_files",
                     "num_fds",
                     "cpu_percent",
                     "memory_percent",
