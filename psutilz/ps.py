@@ -1,13 +1,13 @@
 #!/usr/bin/env python
+import argparse
+import os
 import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime
 from typing import NamedTuple
 
 import psutil
-import argparse
-import sys
-import os
 
 
 class TreeNode(NamedTuple):
@@ -45,8 +45,8 @@ def build_process_tree(procs: list):
 
 def print_tree(process_tree: TreeNode, user_max_width=5):
     print(
-        f"{'USER':>{user_max_width}} {'PID':>5} {'PPID':>5} {'NIC':>3} {'%CPU':>5} {'%MEM':>5} {'#TH':>5}"
-        f" {'STARTED':>19} COMMAND"
+        f"{'USER':>{user_max_width}} {'PID':>5} {'PPID':>5} {'NIC':>3} {'%CPU':>5} {'%MEM':>5} {'#TH':>5} "
+        f"{'#FILE':>5} {'STARTED':>19} COMMAND"
     )
 
     def _print_tree(node: TreeNode, indent: int = 0):
@@ -74,6 +74,7 @@ def print_tree(process_tree: TreeNode, user_max_width=5):
             f"{cpu_percent_str} "
             f"{memory_percent_str} "
             f"{info['num_threads'] or '?':>5} "
+            f"{info['num_fds'] or '?':>5} "
             f"{datetime.utcfromtimestamp(info['create_time']):%Y-%m-%d %H:%M:%S} "
             f"{' '*indent}"
             f"{cmd_str}"
@@ -103,6 +104,7 @@ def main(argv=None):
                     "cmdline",
                     "name",
                     "num_threads",
+                    "num_fds",
                     "cpu_percent",
                     "memory_percent",
                     "ppid",
